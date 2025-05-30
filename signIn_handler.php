@@ -28,7 +28,9 @@
                     $_SESSION["user_type"] = $userType;
 
                     if ($userType == "REGISTRAR"){
-                        header("Location: registrar/home.php");
+                        header("Location: registrar/requests.php");
+                    } else {
+                        header("Location: admins/requests.php");
                     }
                     exit();
                 } else {

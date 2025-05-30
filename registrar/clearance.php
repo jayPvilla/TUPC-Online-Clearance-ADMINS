@@ -44,7 +44,6 @@ include("../db_connection.php");
                 unset($_SESSION['message']);
             }
             ?>
-        
                 <div class="table-responsive rounded shadow-sm">
                     <table class="table table-hover align-middle table-bordered">
                         <thead class="table-dark text-center">
@@ -79,7 +78,7 @@ include("../db_connection.php");
                                 }
                             }
     
-                            $query = "SELECT * FROM student_forms WHERE registrar_approval = 0";
+                            $query = "SELECT * FROM student_forms WHERE registrar_approval = 1";
                             $result = $conn->query($query);
 
                             if ($result && $result->num_rows > 0) {
