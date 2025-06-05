@@ -223,7 +223,7 @@
       </div>
 
       <!-- LOGIN FORM -->
-      <form action="./signIn_handler.php" method="post" class="right-section">
+      <form action="signIn_handler.php" method="post" class="right-section">
         <input type="text" placeholder="Email" id="loginEmail" name="logInEmail">
         <input type="password" placeholder="Password" id="loginPassword" name="logInPassword">
         <label><input type="checkbox" id="showPassword"> Show password</label>

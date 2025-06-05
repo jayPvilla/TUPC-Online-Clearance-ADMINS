@@ -120,6 +120,36 @@ thead {
     fill: white;
     flex-shrink: 0;
 }
+.form-box {
+    background-color: white;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px;
+}
+
+.modal-header {
+    background-color: #c62828;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    width: 180px;
+    font-weight: 500;
+}
 
 @media (max-width: 768px) {
     .sidebar {
@@ -133,6 +163,8 @@ thead {
 
     .main-content {
         margin-left: 0;
+        align-items: center;
+        padding-right: 100px;
     }
 }
 
