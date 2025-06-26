@@ -2,7 +2,7 @@
     $servername = "localhost";
     $username = "root";
     $password = "";
-    $dbname = "online clearance";
+    $dbname = "online-clearance";
 
     $conn = new mysqli($servername, $username, $password, $dbname);
     

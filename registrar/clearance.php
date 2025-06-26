@@ -86,8 +86,10 @@ include("../db_connection.php");
                                     return '<span class="badge bg-success">Approved</span>';
                                 case 0:
                                     return '<span class="badge bg-danger">Declined</span>';
-                                case 2:
+                                case 4:
                                     return '<span class="badge bg-secondary">Pending</span>';
+                                case 2:
+                                    return '';
                                 default:
                                     return '<span class="badge bg-dark">Unknown</span>';
                             }

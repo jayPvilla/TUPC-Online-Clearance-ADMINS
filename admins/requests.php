@@ -122,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $result = $conn->query($query);
                 $pending_count = $result ? $result->num_rows : 0;
             } else {
-                $query = "SELECT * FROM student_forms WHERE registrar_approval = 1 AND `{$user_type}` = 2";
+                $query = "SELECT * FROM student_forms WHERE registrar_approval = 1 AND `{$user_type}` = 4";
                 $result = $conn->query($query);
                 $pending_count = $result ? $result->num_rows : 0;
             }
