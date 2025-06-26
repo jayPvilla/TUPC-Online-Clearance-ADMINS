@@ -5,7 +5,7 @@ include("../db_connection.php");
 
 // Handle Modal Approval/Decline Logic
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['student_id'])) {
-    $student_id = intval($_POST['student_id']);
+    $student_id = $_POST['student_id'];
     $departments = isset($_POST['departments']) ? $_POST['departments'] : [];
 
     $updates = [];
