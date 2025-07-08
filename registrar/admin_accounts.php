@@ -61,6 +61,7 @@ include("../db_connection.php");
                     "LIBERAL ARTS",
                     "MATH & SCIENCES",
                     "DPECS",
+                    "courseShopAd",
                     "INDUSTRIAL EDUCATION",
                     "ENGINEERING",
                     "CAMPUS LIBRARIAN",

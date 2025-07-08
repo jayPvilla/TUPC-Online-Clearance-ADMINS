@@ -5,7 +5,7 @@ include("../db_connection.php");
 
 // Handle Modal Approval/Decline Logic
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['student_id'])) {
-    $student_id = $_POST['student_id'];
+    $student_id = intval($_POST['student_id']); // safer
     $departments = isset($_POST['departments']) ? $_POST['departments'] : [];
 
     $updates = [];
@@ -13,12 +13,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['student_id'])) {
     foreach ($departments as $dept) {
         $field = "";
 
+        // Use array mapping instead of switch if you like
         switch ($dept) {
             case 'ACCOUNTANT': $field = "ACCOUNTANT"; break;
             case 'LIBERAL ARTS': $field = "LIBERAL ARTS"; break;
             case 'MATH & SCIENCES': $field = "MATH & SCIENCES"; break;
             case 'DPECS': $field = "DPECS"; break;
-            case 'mainDept': $field = "mainDept"; break; // used by 2 checkboxes
+            case 'mainDept': $field = "mainDept"; break;
             case 'GUIDANCE COUNSELOR': $field = "GUIDANCE COUNSELOR"; break;
             case 'CAMPUS LIBRARIAN': $field = "CAMPUS LIBRARIAN"; break;
             case 'HEAD OF STUDENT AFFAIRS': $field = "HEAD OF STUDENT AFFAIRS"; break;
@@ -31,10 +32,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['student_id'])) {
         }
     }
 
+    // ✅ 1) Get the student’s course
+    $course = "";
+    $stmt = $conn->prepare("SELECT course FROM student_forms WHERE id = ?");
+    $stmt->bind_param("i", $student_id);
+    $stmt->execute();
+    $stmt->bind_result($course);
+    $stmt->fetch();
+    $stmt->close();
+
+    // ✅ 2) Find matching department from programs table
+    $department = "";
+    if ($course) {
+        $stmt = $conn->prepare("SELECT department FROM programs WHERE program_name = ?");
+        $stmt->bind_param("s", $course);
+        $stmt->execute();
+        $stmt->bind_result($department);
+        $stmt->fetch();
+        $stmt->close();
+    }
+
+    // ✅ 3) Add mainDeptClassify update if found
+    if ($department) {
+        $updates[] = "`mainDeptClassify` = '" . $conn->real_escape_string($department) . "'";
+    }
 
     if (!empty($updates)) {
         $update_sql = "UPDATE student_forms SET " . implode(", ", $updates) . " WHERE id = $student_id";
         $registrar_approval = "UPDATE student_forms SET registrar_approval = 1, registrar_approved_at = NOW() WHERE id = $student_id";
+
         if ($conn->query($update_sql) === TRUE && $conn->query($registrar_approval) === TRUE) {
             $_SESSION['message'] = "<div class='alert alert-success alert-dismissible fade show'>
                 <button type='button' class='btn-close' data-bs-dismiss='alert'></button>

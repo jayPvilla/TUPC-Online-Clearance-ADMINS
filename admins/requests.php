@@ -20,11 +20,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $errors = [];
 
         foreach ($selected_ids as $id) {
-            if (isset($_POST['approve_selected'])) {
-                $update_query = "UPDATE student_forms SET `$user_type` = 1, `{$user_type}_time` = NOW() WHERE id = $id";
-            } elseif (isset($_POST['decline_selected'])) {
-                $remarks = isset($_POST['remarks'][$id]) ? $conn->real_escape_string($_POST['remarks'][$id]) : '';
-                $update_query = "UPDATE student_forms SET `$user_type` = 3, `{$user_type}_time` = NOW(), `{$user_type}_remarks` = '$remarks' WHERE id = $id";
+            if ($user_type != 'ENGINEERING' && $user_type != 'INDUSTRIAL TECHNOLOGY' && $user_type != 'INDUSTRIAL EDUCATION'){
+                if (isset($_POST['approve_selected'])) {
+                    $update_query = "UPDATE student_forms SET `$user_type` = 1, `{$user_type}_time` = NOW() WHERE id = $id";
+                } elseif (isset($_POST['decline_selected'])) {
+                    $remarks = isset($_POST['remarks'][$id]) ? $conn->real_escape_string($_POST['remarks'][$id]) : '';
+                    $update_query = "UPDATE student_forms SET `$user_type` = 3, `{$user_type}_time` = NOW(), `{$user_type}_remarks` = '$remarks' WHERE id = $id";
+                }
+            } else {
+                if (isset($_POST['approve_selected'])) {
+                    $update_query = "UPDATE student_forms SET mainDept = 1, mainDept_time = NOW() WHERE id = $id";
+                } elseif (isset($_POST['decline_selected'])) {
+                    $remarks = isset($_POST['remarks'][$id]) ? $conn->real_escape_string($_POST['remarks'][$id]) : '';
+                    $update_query = "UPDATE student_forms SET mainDept = 3, mainDept_time = NOW(), mainDept}_remarks = '$remarks' WHERE id = $id";
+                }
             }
 
             if (isset($update_query) && !$conn->query($update_query)) {
@@ -121,7 +130,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         AND `GUIDANCE COUNSELOR` != 4";
                 $result = $conn->query($query);
                 $pending_count = $result ? $result->num_rows : 0;
-            } else {
+            } else if ($user_type == "ENGINEERING" || $user_type == "INDUSTRIAL TECHNOLOGY" || $user_type == 'INDUSTRIAL EDUCATION') {
+                if ($stmt = $conn->prepare("SELECT * FROM student_forms WHERE registrar_approval = 1 AND mainDept = 4 AND mainDeptClassify = ?")) {
+                    $stmt->bind_param("s", $user_type);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    $pending_count = $result ? $result->num_rows : 0;
+                    $stmt->close();
+                } else {
+                    $pending_count = 0;
+                }
+            }
+            else {
                 $query = "SELECT * FROM student_forms WHERE registrar_approval = 1 AND `{$user_type}` = 4";
                 $result = $conn->query($query);
                 $pending_count = $result ? $result->num_rows : 0;
