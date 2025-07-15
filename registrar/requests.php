@@ -19,6 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['student_id'])) {
             case 'LIBERAL ARTS': $field = "LIBERAL ARTS"; break;
             case 'MATH & SCIENCES': $field = "MATH & SCIENCES"; break;
             case 'DPECS': $field = "DPECS"; break;
+            case 'courseShopAd': $field = 'courseShopAd'; break;
             case 'mainDept': $field = "mainDept"; break;
             case 'GUIDANCE COUNSELOR': $field = "GUIDANCE COUNSELOR"; break;
             case 'CAMPUS LIBRARIAN': $field = "CAMPUS LIBRARIAN"; break;
@@ -44,7 +45,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['student_id'])) {
     // ✅ 2) Find matching department from programs table
     $department = "";
     if ($course) {
-        $stmt = $conn->prepare("SELECT department FROM programs WHERE program_name = ?");
+        $stmt = $conn->prepare("SELECT department FROM programs WHERE code = ?");
         $stmt->bind_param("s", $course);
         $stmt->execute();
         $stmt->bind_result($department);
@@ -214,7 +215,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['student_id'])) {
             </div>
             <div class="col-6">
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="departments[]" value="mainDept" id="chkCourseShopAd">
+                <input class="form-check-input" type="checkbox" name="departments[]" value="courseShopAd" id="chkCourseShopAd">
                 <label class="form-check-label" for="chkCourseShopAd">Course/Shop/Adviser</label>
               </div>
               <div class="form-check">

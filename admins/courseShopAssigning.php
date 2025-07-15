@@ -3,7 +3,7 @@ ob_start();
 session_start();
 include("../db_connection.php");
 
-$allowed_roles = ['REGISTRAR', 'ACCOUNTANT', 'MATH & SCIENCES', 'LIBERAL ARTS', 'INDUSTRIAL TECHNOLOGY', 'INDUSTRIAL EDUCATION', 'ENGINEERING', 'DPECS', 'courseShopAd', 'CAMPUS LIBRARIAN', 'GUIDANCE COUNSELOR', 'HEAD OF STUDENT AFFAIRS', 'ASST. DIR. FOR ACADEMIC AFFAIRS'];
+$allowed_roles = ['REGISTRAR', 'ACCOUNTANT', 'MATH & SCIENCES', 'LIBERAL ARTS', 'INDUSTRIAL TECHNOLOGY', 'INDUSTRIAL EDUCATION', 'ENGINEERING', 'DPECS', 'CAMPUS LIBRARIAN', 'GUIDANCE COUNSELOR', 'HEAD OF STUDENT AFFAIRS', 'ASST. DIR. FOR ACADEMIC AFFAIRS'];
 
 if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], $allowed_roles)) {
     die("Unauthorized access.");
@@ -12,6 +12,7 @@ if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], $allowed
 $user_type = $_SESSION["user_type"];
 $user_name = $_SESSION["user_name"];
 
+// ✅ Process form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!empty($_POST['selected_ids'])) {
         $selected_ids = array_map('intval', $_POST['selected_ids']);
@@ -20,23 +21,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $errors = [];
 
         foreach ($selected_ids as $id) {
-            if ($user_type != 'ENGINEERING' && $user_type != 'INDUSTRIAL TECHNOLOGY' && $user_type != 'INDUSTRIAL EDUCATION'){
-                if (isset($_POST['approve_selected'])) {
-                    $update_query = "UPDATE student_forms SET `$user_type` = 1, `{$user_type}_time` = NOW() WHERE id = $id";
-                } elseif (isset($_POST['decline_selected'])) {
-                    $remarks = isset($_POST['remarks'][$id]) ? $conn->real_escape_string($_POST['remarks'][$id]) : '';
-                    $update_query = "UPDATE student_forms SET `$user_type` = 3, `{$user_type}_time` = NOW(), `{$user_type}_remarks` = '$remarks' WHERE id = $id";
-                }
-            } else {
-                if (isset($_POST['approve_selected'])) {
-                    $update_query = "UPDATE student_forms SET mainDept = 1, mainDept_time = NOW() WHERE id = $id";
-                } elseif (isset($_POST['decline_selected'])) {
-                    $remarks = isset($_POST['remarks'][$id]) ? $conn->real_escape_string($_POST['remarks'][$id]) : '';
-                    $update_query = "UPDATE student_forms SET mainDept = 3, mainDept_time = NOW(), mainDept}_remarks = '$remarks' WHERE id = $id";
-                }
+            $chosen_adviser = isset($_POST['adviser'][$id]) ? $conn->real_escape_string($_POST['adviser'][$id]) : '';
+
+            if (empty($chosen_adviser)) {
+                $success = false;
+                $errors[] = "No adviser selected for ID $id.";
+                continue;
             }
 
-            if (isset($update_query) && !$conn->query($update_query)) {
+            if ($user_type != 'ENGINEERING' && $user_type != 'INDUSTRIAL TECHNOLOGY' && $user_type != 'INDUSTRIAL EDUCATION'){
+                $update_query = "UPDATE student_forms SET adviser = '$chosen_adviser' WHERE id = $id";
+            } else {
+                $update_query = "UPDATE student_forms SET adviser = '$chosen_adviser' WHERE id = $id";
+            }
+
+            if (!$conn->query($update_query)) {
                 $success = false;
                 $errors[] = "Error on ID $id: " . $conn->error;
             }
@@ -62,6 +61,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
+}
+
+// ✅ Fetch advisers for dropdown
+$advisers = [];
+$adviser_query = "SELECT id, name FROM `admins accounts` WHERE type = 'courseShopAd'";
+$adviser_result = $conn->query($adviser_query);
+if ($adviser_result) {
+    while ($row = $adviser_result->fetch_assoc()) {
+        $advisers[] = $row;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -135,27 +144,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         AND `GUIDANCE COUNSELOR` != 4";
                 $result = $conn->query($query);
                 $pending_count = $result ? $result->num_rows : 0;
-            } else if ($user_type == "courseShopAd") {
-                $stmt = $conn->prepare("SELECT * FROM student_forms 
-                        WHERE registrar_approval = 1
-                        AND courseShopAd = 4
-                        AND adviser = ?");
-                $stmt->bind_param("s", $_SESSION['user_id']);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                $pending_count = $result ? $result->num_rows : 0;
             } else if ($user_type == "ENGINEERING" || $user_type == "INDUSTRIAL TECHNOLOGY" || $user_type == 'INDUSTRIAL EDUCATION') {
-                $stmt = $conn->prepare("
-                    SELECT sf.* 
-                    FROM student_forms sf
-                    JOIN programs p ON sf.course = p.code
-                    WHERE sf.registrar_approval = 1
-                    AND p.department = ?
-                    AND sf.courseShopAd != 4
-                    AND sf.courseShopAd != 3
-                    AND mainDept = 4
-                ");
-                if ($stmt) {
+                if ($stmt = $conn->prepare("SELECT * FROM student_forms WHERE registrar_approval = 1 AND mainDept = 4 AND mainDeptClassify = ?")) {
                     $stmt->bind_param("s", $user_type);
                     $stmt->execute();
                     $result = $stmt->get_result();
@@ -165,7 +155,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $pending_count = 0;
                 }
             }
-
             else {
                 $query = "SELECT * FROM student_forms WHERE registrar_approval = 1 AND `{$user_type}` = 4";
                 $result = $conn->query($query);
@@ -201,7 +190,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                                 <th>HIGH SCHOOL</th>
                                 <th>PURPOSE OF REQUEST</th>
                                 <th>DATE REQUESTED</th>
-                                <th>REMARKS</th>
+                                <th>ADVISER</th>
                             </tr>
                         </thead>
                         <tbody class="text-center">
@@ -225,7 +214,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                                     echo "<td>" . htmlspecialchars($row['highSchool']) . "</td>";
                                     echo "<td>" . htmlspecialchars($purpose) . "</td>";
                                     echo "<td>" . htmlspecialchars($row['created_at']) . "</td>";
-                                    echo "<td><input type='text' class='form-control' name='remarks[" . htmlspecialchars($row['id']) . "]'></td>";
+
+                                    echo "<td><select class='form-select' name='adviser[" . htmlspecialchars($row['id']) . "]' required>";
+                                    echo "<option value=''>Select Adviser</option>";
+                                    foreach ($advisers as $adviser) {
+                                        echo "<option value='" . htmlspecialchars($adviser['id']) . "'>" . htmlspecialchars($adviser['name']) . "</option>";
+                                    }
+                                    echo "</select></td>";
+
                                     echo "</tr>";
                                 }
                             } else {
@@ -244,11 +240,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <label class="form-check-label" for="checkAllBtn">Check All</label>
                     </div>
                     <div class="btn-group">
-                        <button type="submit" name="decline_selected" class="btn btn-outline-danger" disabled>
-                            <i class="bi bi-x-circle"></i> Decline Selected
-                        </button>
                         <button type="submit" name="approve_selected" class="btn btn-outline-success" disabled>
-                            <i class="bi bi-check-circle"></i> Approve Selected
+                            <i class="bi bi-check-circle"></i> Assign Adviser & Approve Selected
                         </button>
                     </div>
                 </div>
@@ -273,7 +266,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         const checkAllBtn = document.getElementById('checkAllBtn');
         const checkboxes = document.querySelectorAll('.select-row');
-        const actionButtons = document.querySelectorAll("button[name='approve_selected'], button[name='decline_selected']");
+        const actionButtons = document.querySelectorAll("button[name='approve_selected']");
 
         function toggleButtons() {
             const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
@@ -287,6 +280,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         checkboxes.forEach(cb => cb.addEventListener('change', toggleButtons));
         toggleButtons();
+
         const searchInput = document.getElementById('searchInput');
         const sortSelect = document.getElementById('sortSelect');
         const tableRows = document.querySelectorAll("tbody tr");
@@ -304,9 +298,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         sortSelect.addEventListener("change", () => {
             const value = sortSelect.value;
             const tbody = document.querySelector("tbody");
-
             const rowsArray = Array.from(tableRows).filter(row => row.style.display !== "none");
-
             const getAttr = (row, attr) => row.getAttribute(`data-${attr}`);
 
             const [key, order] = value.includes("-desc") ? [value.replace("-desc", ""), "desc"] : [value, "asc"];
@@ -314,7 +306,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             rowsArray.sort((a, b) => {
                 const valA = getAttr(a, key).toLowerCase();
                 const valB = getAttr(b, key).toLowerCase();
-
                 if (valA < valB) return order === "asc" ? -1 : 1;
                 if (valA > valB) return order === "asc" ? 1 : -1;
                 return 0;
@@ -325,7 +316,5 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </script>
 
 </body>
-
 </html>
-
 <?php ob_end_flush(); ?>
